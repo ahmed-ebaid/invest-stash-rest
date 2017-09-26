@@ -14,7 +14,8 @@ import com.google.gson.GsonBuilder;
 import com.stashinvest.rest.AccountKeyServiceRequest;
 import com.stashinvest.rest.AccountKeyServiceResponse;
 
-public class ServiceRequest {
+//
+public class AccountKeyRequest {
 
 	public static enum HTTPRequestMethod {
 		GET, POST;
@@ -27,11 +28,17 @@ public class ServiceRequest {
 	public static final String USER_AGENT = "Mozilla/5.0";
 	public static final String JSON_MEDIA_TYPE = "application/json";
 
-	public AccountKeyServiceResponse post(AccountKeyServiceRequest request)
-			throws IOException {
-		URL url = null;
+	/**
+	 * @param request
+	 *            AccountKeyServiceRequest that contains user email and
+	 *            generated key
+	 * @return AccountKeyServiceResponse containing account_key
+	 * @throws IOException
+	 */
+	public static AccountKeyServiceResponse post(
+			AccountKeyServiceRequest request) throws IOException {
 
-		url = new URL(HTTPS_PROTOCOL, ACCOUNT_KEY_SERVICE_HOST, HTTPS_PORT,
+		URL url = new URL(HTTPS_PROTOCOL, ACCOUNT_KEY_SERVICE_HOST, HTTPS_PORT,
 				ACCOUNT_KEY_ENDPOINT);
 		HttpsURLConnection connection = (HttpsURLConnection) url
 				.openConnection();
@@ -56,7 +63,7 @@ public class ServiceRequest {
 		return gson.fromJson(sb.toString(), AccountKeyServiceResponse.class);
 	}
 
-	private void setConnectionParameters(HttpsURLConnection connection)
+	private static void setConnectionParameters(HttpsURLConnection connection)
 			throws ProtocolException {
 		connection.setRequestMethod(HTTPRequestMethod.POST.toString());
 		connection.setRequestProperty("User-Agent", "Mozilla/5.0");

@@ -43,22 +43,29 @@ public class DBHelper {
 		errorMessages = new ArrayList<>();
 	}
 
-	public synchronized void initializeDatabase() throws SQLException {
+	private synchronized void setConnection() throws SQLException {
+		connection = ConnectionManager.Instance.getConnection();
+	}
+
+	public void initializeDatabase() throws SQLException {
 		try {
-			connection = ConnectionManager.Instance.getConnection();
+			setConnection();
 			statement = connection.createStatement();
 			statement.executeUpdate(String.format(
 					"CREATE DATABASE IF NOT EXISTS %s", DBConstants.DB_NAME));
-
-			// Result set get the result of the SQL query
-			statement
-					.executeUpdate(String
-							.format("CREATE TABLE IF NOT EXISTS %s.%s(id INT NOT NULL AUTO_INCREMENT,email VARCHAR(200) NOT NULL UNIQUE,phone_number VARCHAR(20) NOT NULL UNIQUE,full_name VARCHAR(200),password VARCHAR(100) NOT NULL,%3$skey%3$s VARCHAR(100) NOT NULL UNIQUE,account_key VARCHAR(100) UNIQUE,metadata VARCHAR(2000),PRIMARY KEY(id))",
-									DBConstants.DB_NAME,
-									DBConstants.DB_USERS_TABLE, "`"));
-
+			statement.executeUpdate(String.format(
+					"CREATE TABLE IF NOT EXISTS %s.%s("
+							+ "id INT NOT NULL AUTO_INCREMENT,"
+							+ "email VARCHAR(200) NOT NULL UNIQUE,"
+							+ "phone_number VARCHAR(20) NOT NULL UNIQUE,"
+							+ "full_name VARCHAR(200),"
+							+ "password VARCHAR(100) NOT NULL,"
+							+ "%3$skey%3$s VARCHAR(100) NOT NULL UNIQUE,"
+							+ "account_key VARCHAR(100) UNIQUE,"
+							+ "metadata VARCHAR(2000)," + "PRIMARY KEY(id))",
+					DBConstants.DB_NAME, DBConstants.DB_USERS_TABLE, "`"));
 		} catch (SQLException e) {
-			log.error("Error creating database");
+			log.error("Error creating database: " + DBConstants.DB_NAME);
 			throw new SQLException();
 		} finally {
 			close();
@@ -69,12 +76,14 @@ public class DBHelper {
 		return errorMessages;
 	}
 
+	/**
+	 * @return DB users sorted by the id in DESC order
+	 * @throws SQLException
+	 */
 	public synchronized Users getUsersByCreationTime() throws SQLException {
 		try {
-			// Statements allow to issue SQL queries to the database
-			connection = ConnectionManager.Instance.getConnection();
+			setConnection();
 			statement = connection.createStatement();
-			// Result set get the result of the SQL query
 			resultSet = statement.executeQuery(String.format(
 					"SELECT * FROM %s.%s ORDER BY id DESC",
 					DBConstants.DB_NAME, DBConstants.DB_USERS_TABLE));
@@ -90,10 +99,8 @@ public class DBHelper {
 	public synchronized Users getUsersFilteredByQuery(String query)
 			throws SQLException {
 		try {
-			// Statements allow to issue SQL queries to the database
-			connection = ConnectionManager.Instance.getConnection();
+			setConnection();
 			statement = connection.createStatement();
-			// Result set get the result of the SQL query
 			resultSet = statement
 					.executeQuery(String
 							.format("SELECT * FROM %1$s.%2$s WHERE %3$s like %4$s%5$s%6$s%5$s%4$s OR %7$s = %4$s%6$s%4$s OR %8$s = %4$s%6$s%4$s ORDER BY id DESC",
@@ -115,9 +122,7 @@ public class DBHelper {
 			AccountKeyServiceResponse response) {
 		if (response != null) {
 			try {
-				// Statements allow to issue SQL queries to the database
-				connection = ConnectionManager.Instance.getConnection();
-				// Result set get the result of the SQL query
+				setConnection();
 				preparedStatement = connection
 						.prepareStatement(String
 								.format("update %1$s.%2$s set account_key = %3$s%4$s%3$s where email = %3$s%5$s%3$s",
@@ -135,7 +140,6 @@ public class DBHelper {
 				close();
 			}
 		}
-
 	}
 
 	public synchronized void generateUserAccountKey(
@@ -149,15 +153,15 @@ public class DBHelper {
 							Predicates.<AccountKeyServiceResponse> isNull())
 					.retryIfExceptionOfType(IOException.class)
 					.withWaitStrategy(
-							WaitStrategies.fixedWait(10, TimeUnit.SECONDS))
-					.withStopStrategy(StopStrategies.stopAfterAttempt(5))
+							WaitStrategies.fixedWait(5, TimeUnit.SECONDS))
+					.withStopStrategy(StopStrategies.stopAfterAttempt(100))
 					.build();
 			try {
 				updateUserAccountKey(retryer.call(task));
 			} catch (RetryException e) {
-				e.printStackTrace();
+				log.warn("Failure generating user account key", e);
 			} catch (ExecutionException e) {
-				e.printStackTrace();
+				log.error("Failed to retrieve user account key", e);
 			}
 		});
 		executorService.shutdown();
@@ -165,7 +169,7 @@ public class DBHelper {
 
 	public synchronized Users addUser(User user) throws SQLException {
 		try {
-			connection = ConnectionManager.Instance.getConnection();
+			setConnection();
 			preparedStatement = connection
 					.prepareStatement("INSERT INTO users_service_db.users VALUES (default, ?, ?, ?, ? , ?, ?, ?)");
 			preparedStatement.setString(1, user.getEmail());
@@ -180,7 +184,7 @@ public class DBHelper {
 			preparedStatement.setString(7, user.getMetadata());
 			VerificationUtil.verifyValidUserParameters(user, errorMessages);
 			preparedStatement.executeUpdate();
-
+			log.info("Generating user account key for: " + user);
 			generateUserAccountKey(new AccountKeyServiceRequest(key,
 					user.getEmail()));
 			preparedStatement = connection
@@ -188,27 +192,36 @@ public class DBHelper {
 							.format("SELECT * FROM users_service_db.users WHERE email = %1$s%2$s%1$s",
 									"'", user.getEmail()));
 			resultSet = preparedStatement.executeQuery();
-
 			return getUsersObjectFromResultSet(resultSet);
 		} catch (SQLException e) {
-			log.error(
-					String.format("Error adding user %s to the database", user),
-					e);
 			errorMessages.add(e.getMessage());
-			if (e.getMessage().contains("Duplicate")) {
+			// return a null user object if errorMessages size is greater than 1
+			// which indicates that verification has failed on user parameters
+			// or
+			// a duplicate entry already exist in the users table
+			if (errorMessages.size() > 1
+					|| e.getMessage().contains("Duplicate")) {
+				log.error(String.format("Error adding user %s to the database",
+						user), e);
 				return null;
 			} else {
-				throw new SQLException();
+				throw new SQLException(e.getMessage());
 			}
 		} finally {
 			close();
 		}
 	}
 
+	/**
+	 * @param resultSet
+	 *            ResultSet object containing DB rows
+	 * @return Users object
+	 * @throws SQLException
+	 */
 	private Users getUsersObjectFromResultSet(ResultSet resultSet)
 			throws SQLException {
+		Users users = new Users();
 		List<User> usersList = new ArrayList<>();
-		// ResultSet is initially before the first data set
 		while (resultSet.next()) {
 			User user = new User();
 			user.setEmail(resultSet.getString("email"));
@@ -220,11 +233,13 @@ public class DBHelper {
 			user.setMetadata(resultSet.getString("metadata"));
 			usersList.add(user);
 		}
-		Users users = new Users();
 		users.setUsers(usersList);
 		return users;
 	}
 
+	/**
+	 * Closes all open connections
+	 */
 	private synchronized void close() {
 		try {
 			if (resultSet != null) {
@@ -241,8 +256,5 @@ public class DBHelper {
 		} catch (SQLException e) {
 			Logger.getLogger(getClass()).error("Error closing connection", e);
 		}
-	}
-
-	public static void main(String[] args) {
 	}
 }

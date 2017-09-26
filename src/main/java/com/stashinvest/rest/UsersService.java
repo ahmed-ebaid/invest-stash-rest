@@ -19,6 +19,7 @@ import com.stashinvest.db.DBHelper;
 import com.stashinvest.http.StatusCode;
 import com.stashinvest.util.VerificationUtil;
 
+//The following class serves as the UsersService RESTful End Points for adding and retrieving users
 @Path("/v1")
 public class UsersService {
 	private static final Logger log = Logger.getLogger(UsersService.class);
@@ -27,7 +28,7 @@ public class UsersService {
 	@Path("/users")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getUsers(@QueryParam("query") String query) {
-		log.info("Getting Users from DB");
+		log.info("Retrieving Users from DB");
 		try {
 			DBHelper dbHelper = new DBHelper();
 			if (query == null) {
@@ -35,6 +36,7 @@ public class UsersService {
 						MediaType.APPLICATION_JSON).build();
 			} else {
 				if (!VerificationUtil.isValidQuery(query)) {
+					log.warn("Invalid query");
 					return Response
 							.status(StatusCode.UNPROCESSED_ENTITY.code())
 							.entity(StatusCode.UNPROCESSED_ENTITY.reason())
@@ -46,24 +48,25 @@ public class UsersService {
 			}
 		} catch (SQLException e) {
 			return Response.serverError()
-					.entity("Can't establish a database connection").build();
+					.entity("Can't establish a connection to the database")
+					.build();
 		}
 	}
 
 	@POST
 	@Path("/users")
-	// @consumes defines methods that resource class can accept
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response createUser(User user) throws IOException {
 		try {
-			log.info("Create a new user with email" + user.getEmail());
+			log.info("Creating user" + user);
 			DBHelper dbHelper = new DBHelper();
 			Users users = dbHelper.addUser(user);
 			if (users != null) {
 				return Response.status(Status.CREATED).entity(users)
 						.type(MediaType.APPLICATION_JSON).build();
 			} else {
+				//A user is null is a case for an error in some of the user parameters
 				DBErrorMessages errors = new DBErrorMessages();
 				errors.setErrors(dbHelper.getErrorMessages());
 				return Response.status(StatusCode.UNPROCESSED_ENTITY.code())
@@ -72,7 +75,7 @@ public class UsersService {
 			}
 		} catch (SQLException e) {
 			return Response.serverError()
-					.entity("Can't establish a database connection").build();
+					.entity("Can't establish a connection to the database").build();
 		}
 	}
 }
