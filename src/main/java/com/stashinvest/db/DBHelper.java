@@ -8,8 +8,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
@@ -20,7 +21,7 @@ import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
 import com.google.common.base.Predicates;
-import com.stashinvest.http.ServiceRequest;
+import com.stashinvest.http.AccountKeyCallableTask;
 import com.stashinvest.jdbc.ConnectionManager;
 import com.stashinvest.rest.AccountKeyServiceRequest;
 import com.stashinvest.rest.AccountKeyServiceResponse;
@@ -38,7 +39,30 @@ public class DBHelper {
 	private List<String> errorMessages;
 
 	public DBHelper() throws SQLException {
+		initializeDatabase();
 		errorMessages = new ArrayList<>();
+	}
+
+	public synchronized void initializeDatabase() throws SQLException {
+		try {
+			connection = ConnectionManager.Instance.getConnection();
+			statement = connection.createStatement();
+			statement.executeUpdate(String.format(
+					"CREATE DATABASE IF NOT EXISTS %s", DBConstants.DB_NAME));
+
+			// Result set get the result of the SQL query
+			statement
+					.executeUpdate(String
+							.format("CREATE TABLE IF NOT EXISTS %s.%s(id INT NOT NULL AUTO_INCREMENT,email VARCHAR(200) NOT NULL UNIQUE,phone_number VARCHAR(20) NOT NULL UNIQUE,full_name VARCHAR(200),password VARCHAR(100) NOT NULL,%3$skey%3$s VARCHAR(100) NOT NULL UNIQUE,account_key VARCHAR(100) UNIQUE,metadata VARCHAR(2000),PRIMARY KEY(id))",
+									DBConstants.DB_NAME,
+									DBConstants.DB_USERS_TABLE, "`"));
+
+		} catch (SQLException e) {
+			log.error("Error creating database");
+			throw new SQLException();
+		} finally {
+			close();
+		}
 	}
 
 	public List<String> getErrorMessages() {
@@ -70,10 +94,12 @@ public class DBHelper {
 			connection = ConnectionManager.Instance.getConnection();
 			statement = connection.createStatement();
 			// Result set get the result of the SQL query
-			resultSet = statement.executeQuery(String
-					.format("SELECT * FROM %1$s.%2$s WHERE %3$s like %4$s%5$s%6$s%5$s%4$s OR %7$s = %4$s%6$s%4$s OR %8$s = %4$s%6$s%4$s ORDER BY id DESC",
-							DBConstants.DB_NAME, DBConstants.DB_USERS_TABLE,
-							"metadata", "'", "%", query, "full_name", "email"));
+			resultSet = statement
+					.executeQuery(String
+							.format("SELECT * FROM %1$s.%2$s WHERE %3$s like %4$s%5$s%6$s%5$s%4$s OR %7$s = %4$s%6$s%4$s OR %8$s = %4$s%6$s%4$s ORDER BY id DESC",
+									DBConstants.DB_NAME,
+									DBConstants.DB_USERS_TABLE, "metadata",
+									"'", "%", query, "full_name", "email"));
 
 			return getUsersObjectFromResultSet(resultSet);
 		} catch (SQLException e) {
@@ -87,26 +113,54 @@ public class DBHelper {
 
 	public synchronized void updateUserAccountKey(
 			AccountKeyServiceResponse response) {
-		try {
-			// Statements allow to issue SQL queries to the database
-			connection = ConnectionManager.Instance.getConnection();
-			// Result set get the result of the SQL query
-			preparedStatement = connection
-					.prepareStatement(String
-							.format("update %1$s.%2$s set account_key = %3$s%4$s%3$s where email = %3$s%5$s%3$s",
-									DBConstants.DB_NAME,
-									DBConstants.DB_USERS_TABLE, "'",
-									response.getAccountKey(),
-									response.getEmail()));
-			
-			preparedStatement.executeUpdate();
-		} catch (SQLException e) {
-			log.error(
-					"Error update user account_key with email"
-							+ response.getEmail(), e);
-		} finally {
-			close();
+		if (response != null) {
+			try {
+				// Statements allow to issue SQL queries to the database
+				connection = ConnectionManager.Instance.getConnection();
+				// Result set get the result of the SQL query
+				preparedStatement = connection
+						.prepareStatement(String
+								.format("update %1$s.%2$s set account_key = %3$s%4$s%3$s where email = %3$s%5$s%3$s",
+										DBConstants.DB_NAME,
+										DBConstants.DB_USERS_TABLE, "'",
+										response.getAccountKey(),
+										response.getEmail()));
+
+				preparedStatement.executeUpdate();
+			} catch (SQLException e) {
+				log.error(
+						"Error update user account_key with email"
+								+ response.getEmail(), e);
+			} finally {
+				close();
+			}
 		}
+
+	}
+
+	public synchronized void generateUserAccountKey(
+			AccountKeyServiceRequest request) {
+		AccountKeyCallableTask task = new AccountKeyCallableTask(request);
+		ExecutorService executorService = Executors.newSingleThreadExecutor();
+		executorService.execute(() -> {
+			Retryer<AccountKeyServiceResponse> retryer = RetryerBuilder
+					.<AccountKeyServiceResponse> newBuilder()
+					.retryIfResult(
+							Predicates.<AccountKeyServiceResponse> isNull())
+					.retryIfExceptionOfType(IOException.class)
+					.withWaitStrategy(
+							WaitStrategies.fixedWait(10, TimeUnit.SECONDS))
+					.withStopStrategy(StopStrategies.stopAfterAttempt(5))
+					.build();
+			try {
+				updateUserAccountKey(retryer.call(task));
+			} catch (RetryException e) {
+				e.printStackTrace();
+			} catch (ExecutionException e) {
+				e.printStackTrace();
+			}
+		});
+		executorService.shutdown();
 	}
 
 	public synchronized Users addUser(User user) throws SQLException {
@@ -126,46 +180,15 @@ public class DBHelper {
 			preparedStatement.setString(7, user.getMetadata());
 			VerificationUtil.verifyValidUserParameters(user, errorMessages);
 			preparedStatement.executeUpdate();
+
+			generateUserAccountKey(new AccountKeyServiceRequest(key,
+					user.getEmail()));
 			preparedStatement = connection
 					.prepareStatement(String
 							.format("SELECT * FROM users_service_db.users WHERE email = %1$s%2$s%1$s",
 									"'", user.getEmail()));
 			resultSet = preparedStatement.executeQuery();
-			Thread thread = new Thread(new Runnable() {
-				@Override
-				public void run() {
-					Callable<AccountKeyServiceResponse> yourTask = () -> {
-						AccountKeyServiceRequest request = new AccountKeyServiceRequest();
-						request.setEmail(user.getEmail());
-						request.setKey(key);
-						ServiceRequest serviceRequest = new ServiceRequest();
-						return serviceRequest.post(request);
-					};
 
-					Retryer<AccountKeyServiceResponse> retryer = RetryerBuilder
-							.<AccountKeyServiceResponse> newBuilder()
-							.retryIfResult(
-									Predicates
-											.<AccountKeyServiceResponse> isNull())
-							.retryIfExceptionOfType(IOException.class)
-							.withWaitStrategy(
-									WaitStrategies.fixedWait(300,
-											TimeUnit.MILLISECONDS))
-							.withStopStrategy(
-									StopStrategies.stopAfterAttempt(5)).build();
-
-					try {
-						AccountKeyServiceResponse response = retryer
-								.call(yourTask);
-						updateUserAccountKey(response);
-					} catch (RetryException e) {
-						e.printStackTrace();
-					} catch (ExecutionException e) {
-						e.printStackTrace();
-					}
-				}
-			});
-			thread.start();
 			return getUsersObjectFromResultSet(resultSet);
 		} catch (SQLException e) {
 			log.error(
@@ -177,6 +200,8 @@ public class DBHelper {
 			} else {
 				throw new SQLException();
 			}
+		} finally {
+			close();
 		}
 	}
 

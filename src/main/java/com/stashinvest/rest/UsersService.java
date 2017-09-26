@@ -16,6 +16,7 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.log4j.Logger;
 
 import com.stashinvest.db.DBHelper;
+import com.stashinvest.http.StatusCode;
 import com.stashinvest.util.VerificationUtil;
 
 @Path("/v1")

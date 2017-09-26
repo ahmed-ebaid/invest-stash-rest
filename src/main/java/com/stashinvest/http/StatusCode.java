@@ -1,4 +1,4 @@
-package com.stashinvest.rest;
+package com.stashinvest.http;
 
 
 public enum StatusCode {

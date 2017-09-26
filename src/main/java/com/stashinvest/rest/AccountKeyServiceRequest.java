@@ -6,6 +6,11 @@ public class AccountKeyServiceRequest {
 	private String email;
 	private String key;
 
+	public AccountKeyServiceRequest(String key, String email) {
+		this.email = email;
+		this.key = key;
+	}
+
 	public String getEmail() {
 		return email;
 	}
