@@ -9,10 +9,11 @@ To get started with this project, you can either:
 ## Prerequisites
 The following software is needed to complete this project:
 1. Eclipse IDE
-2. MySQL.
+2. MySQL
 3. Gradle
 4. Java JDK 1.8.0_45
-5. Tomcat 8.
+5. Tomcat 8
+
 Replace the following fields in DBConstants.java with the appropriate value:
 1. **DB_NAME**: MySQL database name.
 2. **DB_USERS_TABLE**: MySql table name containing users.
