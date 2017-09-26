@@ -15,26 +15,28 @@ import javax.ws.rs.core.Response.Status;
 
 import org.apache.log4j.Logger;
 
-import com.stashinvest.jdbc.DBHelper;
+import com.stashinvest.db.DBHelper;
+import com.stashinvest.util.VerificationUtil;
 
 @Path("/v1")
 public class UsersService {
+	private static final Logger log = Logger.getLogger(UsersService.class);
 
 	@GET
 	@Path("/users")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getUsers(@QueryParam("query") String query) {
-		Logger.getLogger(getClass()).info("Getting Users");
+		log.info("Getting Users from DB");
 		try {
 			DBHelper dbHelper = new DBHelper();
 			if (query == null) {
 				return Response.ok(dbHelper.getUsersByCreationTime(),
 						MediaType.APPLICATION_JSON).build();
 			} else {
-				if (!dbHelper.isValidQuery(query)) {
+				if (!VerificationUtil.isValidQuery(query)) {
 					return Response
 							.status(StatusCode.UNPROCESSED_ENTITY.code())
-							.entity(StatusCode.UNPROCESSED_ENTITY.reason() + "")
+							.entity(StatusCode.UNPROCESSED_ENTITY.reason())
 							.build();
 				} else {
 					return Response.ok(dbHelper.getUsersFilteredByQuery(query),
@@ -54,12 +56,18 @@ public class UsersService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response createUser(User user) throws IOException {
 		try {
+			log.info("Create a new user with email" + user.getEmail());
 			DBHelper dbHelper = new DBHelper();
 			Users users = dbHelper.addUser(user);
 			if (users != null) {
-				return Response.status(Status.CREATED).entity(users).type(MediaType.APPLICATION_JSON).build();
+				return Response.status(Status.CREATED).entity(users)
+						.type(MediaType.APPLICATION_JSON).build();
 			} else {
-				return null;
+				DBErrorMessages errors = new DBErrorMessages();
+				errors.setErrors(dbHelper.getErrorMessages());
+				return Response.status(StatusCode.UNPROCESSED_ENTITY.code())
+						.entity(errors).type(MediaType.APPLICATION_JSON)
+						.build();
 			}
 		} catch (SQLException e) {
 			return Response.serverError()

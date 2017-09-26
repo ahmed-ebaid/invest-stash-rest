@@ -1,12 +1,17 @@
 package com.stashinvest.jdbc;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+
 import org.apache.commons.dbcp2.BasicDataSource;
 
-public enum DataSource {
+import com.stashinvest.db.DBConstants;
+
+public enum ConnectionManager {
 	Instance;
 	private BasicDataSource bds = new BasicDataSource();
 
-	DataSource() {
+	ConnectionManager() {
 		// Set database driver name
 		bds.setDriverClassName(DBConstants.DRIVER_CLASS_NAME);
 
@@ -22,12 +27,8 @@ public enum DataSource {
 		// Set the connection pool size
 		bds.setInitialSize(DBConstants.CONN_POOL_SIZE);
 	}
-
-	public BasicDataSource getBds() {
-		return bds;
-	}
-
-	public void setBds(BasicDataSource bds) {
-		this.bds = bds;
+	
+	public Connection getConnection() throws SQLException {
+		return bds.getConnection();
 	}
 }

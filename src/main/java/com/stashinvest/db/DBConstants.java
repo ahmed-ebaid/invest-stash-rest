@@ -1,4 +1,4 @@
-package com.stashinvest.jdbc;
+package com.stashinvest.db;
 
 public class DBConstants {
 	public static final String DRIVER_CLASS_NAME = "com.mysql.cj.jdbc.Driver";
