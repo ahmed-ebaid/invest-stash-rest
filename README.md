@@ -7,17 +7,17 @@ To get started with this project, you can either:
 2. download a zip file from https://-github.com/ahmed-ebaid/invest-stash-rest
 
 ## Prerequisites
-* The following software is needed to complete this project:
+The following software is needed to complete this project:
 1. Eclipse IDE
 2. MySQL.
 3. Gradle
 4. Java JDK 1.8.0_45
 5. Tomcat 8.
-* Replace the following fields in DBConstants.java with the appropriate value:
-1. DB_NAME: MySQL database name.
-2. DB_USERS_TABLE: MySql table name containing users.
-3. DB_USER: MySQL username
-4. DB_PASSWORD: MySQL password for DB_USER
+Replace the following fields in DBConstants.java with the appropriate value:
+1. **DB_NAME**: MySQL database name.
+2. **DB_USERS_TABLE**: MySql table name containing users.
+3. **DB_USER**: MySQL username
+4. **DB_PASSWORD**: MySQL password for DB_USER
 
 ## Installing
 To generate files needed by eclipse to compile the project, run the following command:
