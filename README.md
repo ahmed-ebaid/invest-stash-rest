@@ -9,7 +9,7 @@ A RESTful web application that supports user creation and retrieval from a MySQL
 ## Getting Started
 Import the project into Eclipse IDE after cloning or downloading the project via:
 1. Clone the project via: `git clone https://github.com/ahmed-ebaid/invest-stash-rest.git`
-2. download a zip file from https://-github.com/ahmed-ebaid/invest-stash-rest
+2. download a zip file from https://github.com/ahmed-ebaid/invest-stash-rest
 
 ## Prerequisites
 The following software is needed to complete this project:
