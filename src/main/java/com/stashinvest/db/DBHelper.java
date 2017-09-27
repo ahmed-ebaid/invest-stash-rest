@@ -8,27 +8,22 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
-import com.github.rholder.retry.RetryException;
-import com.github.rholder.retry.Retryer;
-import com.github.rholder.retry.RetryerBuilder;
-import com.github.rholder.retry.StopStrategies;
-import com.github.rholder.retry.WaitStrategies;
-import com.google.common.base.Predicates;
 import com.stashinvest.http.AccountKeyCallableTask;
 import com.stashinvest.jdbc.ConnectionManager;
 import com.stashinvest.rest.User;
 import com.stashinvest.rest.Users;
 import com.stashinvest.util.HashHelper;
+import com.stashinvest.util.RetryerHelper;
 import com.stashinvest.util.VerificationUtil;
+import com.stashinvest.db.Updatable;
 
-public class DBHelper {
+public class DBHelper implements Updatable<User> {
 	private static final Logger log = Logger.getLogger(DBHelper.class);
 	private Connection connection = null;
 	private Statement statement = null;
@@ -139,24 +134,10 @@ public class DBHelper {
 	}
 
 	public synchronized void generateUserAccountKey(User user) {
-		AccountKeyCallableTask task = new AccountKeyCallableTask(user);
 		ExecutorService executorService = Executors.newSingleThreadExecutor();
 		executorService.execute(() -> {
-			Retryer<User> retryer = RetryerBuilder
-					.<User> newBuilder()
-					.retryIfResult(Predicates.<User> isNull())
-					.retryIfExceptionOfType(IOException.class)
-					.withWaitStrategy(
-							WaitStrategies.fixedWait(5, TimeUnit.SECONDS))
-					.withStopStrategy(StopStrategies.stopAfterAttempt(100))
-					.build();
-			try {
-				updateUserAccountKey(retryer.call(task));
-			} catch (RetryException e) {
-				log.warn("Failure generating user account key", e);
-			} catch (ExecutionException e) {
-				log.error("Failed to retrieve user account key", e);
-			}
+			new RetryerHelper<User>(this).retry(5, TimeUnit.SECONDS, 30,
+					new AccountKeyCallableTask(user), IOException.class);
 		});
 		executorService.shutdown();
 	}
@@ -254,5 +235,10 @@ public class DBHelper {
 		} catch (SQLException e) {
 			Logger.getLogger(getClass()).error("Error closing connection", e);
 		}
+	}
+
+	@Override
+	public void update(User user) {
+		updateUserAccountKey(user);
 	}
 }

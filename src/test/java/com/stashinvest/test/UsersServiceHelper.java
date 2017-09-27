@@ -2,7 +2,7 @@ package com.stashinvest.test;
 
 import java.util.concurrent.TimeUnit;
 
-import com.stashinvest.db.DBErrors;
+import com.stashinvest.rest.DBErrors;
 import com.stashinvest.rest.Users;
 
 public class UsersServiceHelper {

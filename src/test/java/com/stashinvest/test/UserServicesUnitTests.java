@@ -2,6 +2,10 @@ package com.stashinvest.test;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.core.Response;
@@ -13,9 +17,9 @@ import org.junit.Test;
 
 import com.github.javafaker.Faker;
 import com.google.gson.Gson;
-import com.stashinvest.db.DBErrors;
 import com.stashinvest.http.HttpRequests;
 import com.stashinvest.http.StatusCode;
+import com.stashinvest.rest.DBErrors;
 import com.stashinvest.rest.User;
 import com.stashinvest.rest.Users;
 import com.stashinvest.rest.UsersService;
@@ -136,18 +140,19 @@ public class UserServicesUnitTests {
 	public void getUsersWithInvalidQueryAndVerifyError() throws IOException,
 			InterruptedException {
 		log.info("Verifying account key is not null");
-		Users users = request.httpGet(
+		request.httpGet(
 				UsersServiceHelper.generateUsersServiceQuery(EMPTY_STRING),
 				Users.class);
 		Assert.assertTrue(
 				"Can't get users with an empty query",
-				request.getConnection().getResponseCode() == StatusCode.UNPROCESSED_ENTITY
+				request.getHttpConnection().getResponseCode() == StatusCode.UNPROCESSED_ENTITY
 						.code());
 	}
 
 	@Test
 	public void createUserWithAdditionalFieldsAndVerifyErrors()
 			throws IOException, InterruptedException {
+		log.info("Verify a user can't be created with a key value");
 		User user = new User();
 		user.setEmail(faker.internet().emailAddress());
 		user.setPhoneNumber(faker.phoneNumber().phoneNumber());
@@ -155,15 +160,39 @@ public class UserServicesUnitTests {
 		user.setPassword(faker.crypto().sha1());
 		user.setMetadata(faker.address().fullAddress());
 		user.setKey(faker.book().title());
-		Users users = request.httpPost(new Gson().toJson(user), Users.class);
+		request.httpPost(new Gson().toJson(user), Users.class);
 		Assert.assertTrue(
 				"Allowed fields for creating a user are email, phone number, full_name, password, metadata",
-				request.getConnection().getResponseCode() == StatusCode.BAD_REQUEST
+				request.getHttpConnection().getResponseCode() == StatusCode.BAD_REQUEST
 						.code());
 	}
 
-	public static void main(String[] args) throws IOException,
-			InterruptedException {
-
+	@Test
+	public void createUsersInMultiThreadedFashionVerifyNoError()
+			throws InterruptedException, ExecutionException {
+		ExecutorService executorService = Executors.newFixedThreadPool(15);
+		for (int i = 0; i < 15; i++) {
+			executorService.execute(() -> {
+				User user = new User();
+				user.setEmail(faker.internet().emailAddress());
+				user.setPhoneNumber(faker.phoneNumber().phoneNumber());
+				user.setFullName(faker.name().fullName());
+				user.setPassword(faker.crypto().sha1());
+				user.setMetadata(faker.address().fullAddress());
+				log.info("Creating user: " + user);
+				request.httpPost(new Gson().toJson(user), Users.class);
+			});
+		}
+		UsersServiceHelper.sleep(TimeUnit.MINUTES, 2);
+		Users users = request
+				.httpGet(UsersServiceHelper.generateUsersServiceQuery(null),
+						Users.class);
+		for (User u : users.getUsers()) {
+			Assert.assertTrue("Key value shouldn't be empty",
+					u.getKey() != null);
+			Assert.assertTrue("Account key value shouldn't be empty",
+					u.getAccountKey() != null);
+		}
+		executorService.shutdown();
 	}
 }

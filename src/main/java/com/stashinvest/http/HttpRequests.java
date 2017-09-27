@@ -19,7 +19,9 @@ import com.google.gson.GsonBuilder;
 
 // A generic class for handling http/https get/post requests.
 public class HttpRequests<T> {
-	private HttpURLConnection connection;
+	private HttpURLConnection httpConnection;
+	private HttpsURLConnection httpsConnection;
+
 	public static enum HttpRequestMethod {
 		GET, POST;
 	}
@@ -39,19 +41,18 @@ public class HttpRequests<T> {
 	public T httpsPost(String jsonBody, Class<T> clazz) throws IOException {
 		URL url = new URL(HTTPS_PROTOCOL, ACCOUNT_KEY_SERVICE_HOST, HTTPS_PORT,
 				ACCOUNT_KEY_ENDPOINT);
-		HttpsURLConnection connection = (HttpsURLConnection) url
-				.openConnection();
-		connection.setRequestMethod(HttpRequestMethod.POST.toString());
-		setConnectionParameters(connection, HttpRequestMethod.POST);
+		httpsConnection = (HttpsURLConnection) url.openConnection();
+		httpsConnection.setRequestMethod(HttpRequestMethod.POST.toString());
+		setConnectionParameters(httpsConnection, HttpRequestMethod.POST);
 
-		connection.setFixedLengthStreamingMode(jsonBody.getBytes().length);
+		httpsConnection.setFixedLengthStreamingMode(jsonBody.getBytes().length);
 		try (OutputStreamWriter out = new OutputStreamWriter(
-				connection.getOutputStream())) {
+				httpsConnection.getOutputStream())) {
 			out.write(jsonBody);
 		}
 		StringBuilder sb = new StringBuilder();
 		try (BufferedReader in = new BufferedReader(new InputStreamReader(
-				connection.getInputStream()))) {
+				httpsConnection.getInputStream()))) {
 			String inputLine;
 			while ((inputLine = in.readLine()) != null) {
 				sb.append(inputLine);
@@ -69,18 +70,18 @@ public class HttpRequests<T> {
 		try {
 			URL url = new URL(HTTP_PROTOCOL, LOCAL_HOST, HTTP_PORT,
 					USERS_SERVICE_ENDPOINT);
-			connection = (HttpURLConnection) url
-					.openConnection();
-			connection.setRequestMethod(HttpRequestMethod.POST.toString());
-			setConnectionParameters(connection, HttpRequestMethod.POST);
-			connection.setFixedLengthStreamingMode(jsonBody.getBytes().length);
+			httpConnection = (HttpURLConnection) url.openConnection();
+			httpConnection.setRequestMethod(HttpRequestMethod.POST.toString());
+			setConnectionParameters(httpConnection, HttpRequestMethod.POST);
+			httpConnection
+					.setFixedLengthStreamingMode(jsonBody.getBytes().length);
 			try (OutputStreamWriter out = new OutputStreamWriter(
-					connection.getOutputStream())) {
+					httpConnection.getOutputStream())) {
 				out.write(jsonBody);
 			}
 			StringBuilder sb = new StringBuilder();
 			try (BufferedReader in = new BufferedReader(new InputStreamReader(
-					connection.getInputStream()))) {
+					httpConnection.getInputStream()))) {
 				String inputLine;
 				while ((inputLine = in.readLine()) != null) {
 					sb.append(inputLine);
@@ -103,14 +104,13 @@ public class HttpRequests<T> {
 				url = new URL(HTTP_PROTOCOL, LOCAL_HOST, HTTP_PORT,
 						USERS_SERVICE_ENDPOINT + query);
 			}
-			connection = (HttpURLConnection) url
-					.openConnection();
-			connection.setRequestMethod(HttpRequestMethod.GET.toString());
-			setConnectionParameters(connection, HttpRequestMethod.GET);
+			httpConnection = (HttpURLConnection) url.openConnection();
+			httpConnection.setRequestMethod(HttpRequestMethod.GET.toString());
+			setConnectionParameters(httpConnection, HttpRequestMethod.GET);
 			Gson gson = new Gson();
 			StringBuilder sb = new StringBuilder();
 			try (BufferedReader in = new BufferedReader(new InputStreamReader(
-					connection.getInputStream()))) {
+					httpConnection.getInputStream()))) {
 				String inputLine;
 				while ((inputLine = in.readLine()) != null) {
 					sb.append(inputLine);
@@ -132,8 +132,12 @@ public class HttpRequests<T> {
 			connection.setDoOutput(true);
 		}
 	}
-	
-	public HttpURLConnection getConnection() {
-		return connection;
+
+	public HttpURLConnection getHttpConnection() {
+		return httpConnection;
+	}
+
+	public HttpsURLConnection getHttpsConnection() {
+		return httpsConnection;
 	}
 }

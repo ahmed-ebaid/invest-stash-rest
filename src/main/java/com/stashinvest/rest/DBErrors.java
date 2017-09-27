@@ -1,4 +1,4 @@
-package com.stashinvest.db;
+package com.stashinvest.rest;
 
 import java.util.List;
 
