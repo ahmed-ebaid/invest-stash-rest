@@ -1,11 +1,10 @@
 # Users Service
 A RESTful web application that supports user creation and retrieval from a MySQL database. For this project the following end points are supported:
 
-`
-GET /v1/users
 
-POST /v1/users
-`
+`GET /v1/users`
+`POST /v1/users`
+
 ## Getting Started
 To get started with this project, you can either:
 1. Clone the project via: `git clone https://github.com/ahmed-ebaid/invest-stash-rest.git`
