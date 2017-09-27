@@ -3,6 +3,7 @@ A RESTful web application that supports user creation and retrieval from a MySQL
 
 
 `GET /v1/users`
+
 `POST /v1/users`
 
 ## Getting Started
