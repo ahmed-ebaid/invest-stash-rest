@@ -2,6 +2,7 @@
 A RESTful web application that supports user creation and retrieval from a MySQL database. For this project the following end points are supported:
 `
 GET /v1/users
+
 POST /v1/users
 `
 ## Getting Started
