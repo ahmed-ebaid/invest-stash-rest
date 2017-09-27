@@ -12,8 +12,6 @@ import java.net.URLConnection;
 import javax.net.ssl.HttpsURLConnection;
 
 import com.google.gson.Gson;
-import com.stashinvest.rest.User;
-import com.stashinvest.rest.Users;
 
 // A generic class for handling http/https get/post requests.
 public class HttpRequests<T> {
@@ -106,15 +104,5 @@ public class HttpRequests<T> {
 		if (requestMethod.equals(HttpRequestMethod.POST)) {
 			connection.setDoOutput(true);
 		}
-	}
-
-	public static void main(String[] args) throws IOException {
-		User user = new User();
-		user.setEmail("alia@gmail.com");
-		user.setPhoneNumber("9019106724");
-		user.setFullName("Alia Ebaid");
-		user.setPassword("hi5");
-		user.setMetadata("Age 3, Prek");
-		HttpRequests<Users> requests = new HttpRequests<>();
 	}
 }
