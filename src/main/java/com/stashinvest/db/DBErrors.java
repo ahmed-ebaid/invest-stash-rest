@@ -1,8 +1,8 @@
-package com.stashinvest.rest;
+package com.stashinvest.db;
 
 import java.util.List;
 
-public class DBErrorMessages {
+public class DBErrors {
 	private List<String> errors;
 
 	public List<String> getErrors() {

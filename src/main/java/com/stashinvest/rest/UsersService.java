@@ -16,6 +16,7 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.log4j.Logger;
 
 import com.stashinvest.db.DBHelper;
+import com.stashinvest.db.DBErrors;
 import com.stashinvest.http.StatusCode;
 import com.stashinvest.util.VerificationUtil;
 
@@ -66,8 +67,9 @@ public class UsersService {
 				return Response.status(Status.CREATED).entity(users)
 						.type(MediaType.APPLICATION_JSON).build();
 			} else {
-				//A user is null is a case for an error in some of the user parameters
-				DBErrorMessages errors = new DBErrorMessages();
+				// A user is null is a case for an error in some of the user
+				// parameters
+				DBErrors errors = new DBErrors();
 				errors.setErrors(dbHelper.getErrorMessages());
 				return Response.status(StatusCode.UNPROCESSED_ENTITY.code())
 						.entity(errors).type(MediaType.APPLICATION_JSON)
@@ -75,7 +77,8 @@ public class UsersService {
 			}
 		} catch (SQLException e) {
 			return Response.serverError()
-					.entity("Can't establish a connection to the database").build();
+					.entity("Can't establish a connection to the database")
+					.build();
 		}
 	}
 }

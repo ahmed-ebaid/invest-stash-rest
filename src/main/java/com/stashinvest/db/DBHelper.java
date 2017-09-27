@@ -23,8 +23,6 @@ import com.github.rholder.retry.WaitStrategies;
 import com.google.common.base.Predicates;
 import com.stashinvest.http.AccountKeyCallableTask;
 import com.stashinvest.jdbc.ConnectionManager;
-import com.stashinvest.rest.AccountKeyServiceRequest;
-import com.stashinvest.rest.AccountKeyServiceResponse;
 import com.stashinvest.rest.User;
 import com.stashinvest.rest.Users;
 import com.stashinvest.util.HashHelper;
@@ -118,9 +116,8 @@ public class DBHelper {
 		}
 	}
 
-	public synchronized void updateUserAccountKey(
-			AccountKeyServiceResponse response) {
-		if (response != null) {
+	public synchronized void updateUserAccountKey(User user) {
+		if (user != null) {
 			try {
 				setConnection();
 				preparedStatement = connection
@@ -128,29 +125,26 @@ public class DBHelper {
 								.format("update %1$s.%2$s set account_key = %3$s%4$s%3$s where email = %3$s%5$s%3$s",
 										DBConstants.DB_NAME,
 										DBConstants.DB_USERS_TABLE, "'",
-										response.getAccountKey(),
-										response.getEmail()));
+										user.getAccountKey(), user.getEmail()));
 
 				preparedStatement.executeUpdate();
 			} catch (SQLException e) {
 				log.error(
 						"Error update user account_key with email"
-								+ response.getEmail(), e);
+								+ user.getEmail(), e);
 			} finally {
 				close();
 			}
 		}
 	}
 
-	public synchronized void generateUserAccountKey(
-			AccountKeyServiceRequest request) {
-		AccountKeyCallableTask task = new AccountKeyCallableTask(request);
+	public synchronized void generateUserAccountKey(User user) {
+		AccountKeyCallableTask task = new AccountKeyCallableTask(user);
 		ExecutorService executorService = Executors.newSingleThreadExecutor();
 		executorService.execute(() -> {
-			Retryer<AccountKeyServiceResponse> retryer = RetryerBuilder
-					.<AccountKeyServiceResponse> newBuilder()
-					.retryIfResult(
-							Predicates.<AccountKeyServiceResponse> isNull())
+			Retryer<User> retryer = RetryerBuilder
+					.<User> newBuilder()
+					.retryIfResult(Predicates.<User> isNull())
 					.retryIfExceptionOfType(IOException.class)
 					.withWaitStrategy(
 							WaitStrategies.fixedWait(5, TimeUnit.SECONDS))
@@ -185,8 +179,12 @@ public class DBHelper {
 			VerificationUtil.verifyValidUserParameters(user, errorMessages);
 			preparedStatement.executeUpdate();
 			log.info("Generating user account key for: " + user);
-			generateUserAccountKey(new AccountKeyServiceRequest(key,
-					user.getEmail()));
+			// Generate a new user that only contains email + key to retrieve
+			// account_key information
+			User newUser = new User();
+			newUser.setEmail(user.getEmail());
+			newUser.setKey(key);
+			generateUserAccountKey(newUser);
 			preparedStatement = connection
 					.prepareStatement(String
 							.format("SELECT * FROM users_service_db.users WHERE email = %1$s%2$s%1$s",

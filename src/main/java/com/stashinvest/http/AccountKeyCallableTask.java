@@ -3,23 +3,22 @@ package com.stashinvest.http;
 import java.util.concurrent.Callable;
 
 import com.google.gson.Gson;
-import com.stashinvest.rest.AccountKeyServiceRequest;
-import com.stashinvest.rest.AccountKeyServiceResponse;
+import com.stashinvest.rest.User;
 
 //A callable task for returning the account key
 public class AccountKeyCallableTask implements
-		Callable<AccountKeyServiceResponse> {
-	private AccountKeyServiceRequest accountKeyServiceRequest;
+		Callable<User> {
+	private User user;
 
 	public AccountKeyCallableTask(
-			AccountKeyServiceRequest accountKeyServiceRequest) {
-		this.accountKeyServiceRequest = accountKeyServiceRequest;
+			User user) {
+		this.user = user;
 	}
 
 	@Override
-	public AccountKeyServiceResponse call() throws Exception {
-		HttpRequests<AccountKeyServiceResponse> requests = new HttpRequests<>();
-		return requests.httpsPost(new Gson().toJson(accountKeyServiceRequest),
-				AccountKeyServiceResponse.class);
+	public User call() throws Exception {
+		HttpRequests<User> requests = new HttpRequests<>();
+		return requests.httpsPost(new Gson().toJson(user),
+				User.class);
 	}
 }

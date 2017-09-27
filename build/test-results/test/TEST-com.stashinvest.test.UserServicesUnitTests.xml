@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.stashinvest.test.UserServicesUnitTests" tests="4" skipped="0" failures="0" errors="0" timestamp="2017-09-27T19:06:19" hostname="macbook-pro" time="63.37">
+  <properties/>
+  <testcase name="addUserVerifyKeyAndAccountKeyExistAfterCreation" classname="com.stashinvest.test.UserServicesUnitTests" time="61.025"/>
+  <testcase name="getUsersWithInvalidQueryAndVerifyError" classname="com.stashinvest.test.UserServicesUnitTests" time="0.007"/>
+  <testcase name="addUserWithMissingOrInvalidParameters" classname="com.stashinvest.test.UserServicesUnitTests" time="2.315"/>
+  <testcase name="createUserWithAdditionalFieldsAndVerifyErrors" classname="com.stashinvest.test.UserServicesUnitTests" time="0.02"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

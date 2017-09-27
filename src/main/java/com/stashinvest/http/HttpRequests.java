@@ -11,14 +11,20 @@ import java.net.URLConnection;
 
 import javax.net.ssl.HttpsURLConnection;
 
+import org.apache.log4j.Logger;
+
+import com.google.gson.FieldNamingPolicy;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 // A generic class for handling http/https get/post requests.
 public class HttpRequests<T> {
+	private HttpURLConnection connection;
 	public static enum HttpRequestMethod {
 		GET, POST;
 	}
 
+	private static final Logger log = Logger.getLogger(HttpRequests.class);
 	private static final String USERS_SERVICE_ENDPOINT = "/invest-stash-rest/rest/v1/users";
 	private static final String ACCOUNT_KEY_ENDPOINT = "/v1/account";
 	private static final String HTTP_PROTOCOL = "http";
@@ -31,7 +37,6 @@ public class HttpRequests<T> {
 	private static final String JSON_MEDIA_TYPE = "application/json";
 
 	public T httpsPost(String jsonBody, Class<T> clazz) throws IOException {
-
 		URL url = new URL(HTTPS_PROTOCOL, ACCOUNT_KEY_SERVICE_HOST, HTTPS_PORT,
 				ACCOUNT_KEY_ENDPOINT);
 		HttpsURLConnection connection = (HttpsURLConnection) url
@@ -52,48 +57,70 @@ public class HttpRequests<T> {
 				sb.append(inputLine);
 			}
 		}
-		return new Gson().fromJson(sb.toString(), clazz);
-	}
-
-	public T httpPost(String jsonBody, Class<T> clazz) throws IOException {
-
-		URL url = new URL(HTTP_PROTOCOL, LOCAL_HOST, HTTP_PORT,
-				USERS_SERVICE_ENDPOINT);
-		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-		connection.setRequestMethod(HttpRequestMethod.POST.toString());
-		setConnectionParameters(connection, HttpRequestMethod.POST);
-		connection.setFixedLengthStreamingMode(jsonBody.getBytes().length);
-		try (OutputStreamWriter out = new OutputStreamWriter(
-				connection.getOutputStream())) {
-			out.write(jsonBody);
-		}
-		StringBuilder sb = new StringBuilder();
-		try (BufferedReader in = new BufferedReader(new InputStreamReader(
-				connection.getInputStream()))) {
-			String inputLine;
-			while ((inputLine = in.readLine()) != null) {
-				sb.append(inputLine);
-			}
-		}
-		return new Gson().fromJson(sb.toString(), clazz);
-	}
-
-	public T httpGet(Class<T> clazz) throws IOException {
-		URL url = new URL(HTTP_PROTOCOL, LOCAL_HOST, HTTP_PORT,
-				USERS_SERVICE_ENDPOINT);
-		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-		connection.setRequestMethod(HttpRequestMethod.GET.toString());
-		setConnectionParameters(connection, HttpRequestMethod.GET);
-		Gson gson = new Gson();
-		StringBuilder sb = new StringBuilder();
-		try (BufferedReader in = new BufferedReader(new InputStreamReader(
-				connection.getInputStream()))) {
-			String inputLine;
-			while ((inputLine = in.readLine()) != null) {
-				sb.append(inputLine);
-			}
-		}
+		// setFieldNamingPolicy is used to here to convert from
+		// lower_case_with_underscore names retrieved from end point to camel
+		// case to match POJO class
+		Gson gson = new GsonBuilder().setFieldNamingPolicy(
+				FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES).create();
 		return gson.fromJson(sb.toString(), clazz);
+	}
+
+	public T httpPost(String jsonBody, Class<T> clazz) {
+		try {
+			URL url = new URL(HTTP_PROTOCOL, LOCAL_HOST, HTTP_PORT,
+					USERS_SERVICE_ENDPOINT);
+			connection = (HttpURLConnection) url
+					.openConnection();
+			connection.setRequestMethod(HttpRequestMethod.POST.toString());
+			setConnectionParameters(connection, HttpRequestMethod.POST);
+			connection.setFixedLengthStreamingMode(jsonBody.getBytes().length);
+			try (OutputStreamWriter out = new OutputStreamWriter(
+					connection.getOutputStream())) {
+				out.write(jsonBody);
+			}
+			StringBuilder sb = new StringBuilder();
+			try (BufferedReader in = new BufferedReader(new InputStreamReader(
+					connection.getInputStream()))) {
+				String inputLine;
+				while ((inputLine = in.readLine()) != null) {
+					sb.append(inputLine);
+				}
+			}
+			return new Gson().fromJson(sb.toString(), clazz);
+		} catch (IOException e) {
+			log.error(e);
+		}
+		return null;
+	}
+
+	public T httpGet(String query, Class<T> clazz) {
+		try {
+			URL url = null;
+			if (query == null) {
+				url = new URL(HTTP_PROTOCOL, LOCAL_HOST, HTTP_PORT,
+						USERS_SERVICE_ENDPOINT);
+			} else {
+				url = new URL(HTTP_PROTOCOL, LOCAL_HOST, HTTP_PORT,
+						USERS_SERVICE_ENDPOINT + query);
+			}
+			connection = (HttpURLConnection) url
+					.openConnection();
+			connection.setRequestMethod(HttpRequestMethod.GET.toString());
+			setConnectionParameters(connection, HttpRequestMethod.GET);
+			Gson gson = new Gson();
+			StringBuilder sb = new StringBuilder();
+			try (BufferedReader in = new BufferedReader(new InputStreamReader(
+					connection.getInputStream()))) {
+				String inputLine;
+				while ((inputLine = in.readLine()) != null) {
+					sb.append(inputLine);
+				}
+			}
+			return gson.fromJson(sb.toString(), clazz);
+		} catch (IOException e) {
+			log.error(e);
+		}
+		return null;
 	}
 
 	public void setConnectionParameters(URLConnection connection,
@@ -104,5 +131,9 @@ public class HttpRequests<T> {
 		if (requestMethod.equals(HttpRequestMethod.POST)) {
 			connection.setDoOutput(true);
 		}
+	}
+	
+	public HttpURLConnection getConnection() {
+		return connection;
 	}
 }
