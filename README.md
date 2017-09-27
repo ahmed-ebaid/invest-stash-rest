@@ -54,7 +54,7 @@ An output from a curl request could be one of the follwing:
 3. 400 Bad Request which is a result of passing in a parameter to the post request in addition to the following email, phone_number, full_name, password, and metadata.
 4. 500 Server Error caused by server or connection related issues.
 
-* The following query is a POST request for adding a user to the database. Output of this query is the user that just got added.
+The following query is a POST request for adding a user to the database. Output of this query is the user that just got added.
 
 `curl -i -H "Content-Type: application/json" -X POST "http://localhost:8080/invest-stash-rest/rest/v1/users" -d "{\"email\":\"user@example.com\",\"phoneNumber\":\"1234567891\",\"fullName\":\"Ahmed Ebaid\",\"password\":\"asdfg\",\"metadata\":\"age 20, educated\"}"`
 
