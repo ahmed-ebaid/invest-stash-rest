@@ -24,6 +24,8 @@ Replace the following fields in DBConstants.java with their appropriate values:
 2. **DB_USERS_TABLE** ->  MySql table name containing users.
 3. **DB_USER** ->  MySQL username
 4. **DB_PASSWORD** ->  MySQL password for DB_USER
+File logging is enabled for this project. To use logging, modify the following file @
+`/src/main/resources/log4j.properties` by replacing the file path @ `log4j.appender.file.File` with the approperiate destination.
 
 ## Installing
 To generate files needed by eclipse, run the following gradle command:
