@@ -27,7 +27,7 @@ public enum ConnectionManager {
 		// Set the connection pool size
 		bds.setInitialSize(DBConstants.CONN_POOL_SIZE);
 	}
-	
+
 	public Connection getConnection() throws SQLException {
 		return bds.getConnection();
 	}

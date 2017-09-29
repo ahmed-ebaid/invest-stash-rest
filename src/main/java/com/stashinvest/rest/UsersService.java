@@ -42,9 +42,10 @@ public class UsersService {
 				return Response.ok(dbHelper.getUsersByCreationTime(),
 						MediaType.APPLICATION_JSON).build();
 			} else {
-				return !VerificationUtil.isValidQuery(query) ? Response
-						.status(StatusCode.UNPROCESSED_ENTITY.code())
-						.entity(StatusCode.UNPROCESSED_ENTITY.reason()).build()
+				return !VerificationUtil.isValidQuery(query)
+						? Response.status(StatusCode.UNPROCESSED_ENTITY.code())
+								.entity(StatusCode.UNPROCESSED_ENTITY.reason())
+								.build()
 						: Response.ok(dbHelper.getUsersFilteredByQuery(query),
 								MediaType.APPLICATION_JSON).build();
 			}
