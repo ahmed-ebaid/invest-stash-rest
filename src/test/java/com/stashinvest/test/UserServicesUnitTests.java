@@ -45,11 +45,6 @@ public class UserServicesUnitTests {
 	request = new HttpRequests<>();
     }
 
-    @After
-    public void tearDown() throws SQLException {
-	new DBHelper().deleteDatabase();
-    }
-
     @Test
     public void addUserWithMissingOrInvalidParameters() throws IOException {
 	User user = new User();

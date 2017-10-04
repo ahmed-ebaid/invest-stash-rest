@@ -217,20 +217,6 @@ public class DBHelper implements Updatable<User> {
 	return users;
     }
 
-    public synchronized void deleteDatabase() throws SQLException {
-	try {
-	    setConnection();
-	    statement = connection.createStatement();
-	    statement.executeUpdate(String.format("DROP DATABASE IF EXISTS %s",
-		    DBConstants.DB_NAME));
-	} catch (SQLException e) {
-	    log.error("Couldn't drop database " + DBConstants.DB_NAME, e);
-	    throw new SQLException();
-	} finally {
-	    close();
-	}
-    }
-
     /**
      * Closes all open connections
      */
