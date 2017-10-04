@@ -1,7 +1,6 @@
 package com.stashinvest.test;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -15,14 +14,12 @@ import java.util.concurrent.TimeUnit;
 import javax.ws.rs.core.Response;
 
 import org.apache.log4j.Logger;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.github.javafaker.Faker;
 import com.google.gson.Gson;
-import com.stashinvest.db.DBHelper;
 import com.stashinvest.http.HttpRequests;
 import com.stashinvest.http.StatusCode;
 import com.stashinvest.rest.DBErrors;
@@ -178,7 +175,7 @@ public class UserServicesUnitTests {
 	    throws InterruptedException, ExecutionException {
 	log.info("Create 100 users, verify their account_key is not null");
 	List<Callable<Users>> callables = new ArrayList<>();
-	for (int i = 0; i < 1000; i++) {
+	for (int i = 0; i < 100; i++) {
 	    Callable<Users> callable = () -> {
 		User user = new User();
 		user.setEmail(faker.internet().emailAddress());
@@ -207,12 +204,5 @@ public class UserServicesUnitTests {
 	    Assert.assertTrue("Account key value shouldn't be empty",
 		    u.getAccountKey() != null);
 	}
-    }
-
-    public static void main(String[] args) throws InterruptedException,
-	    ExecutionException {
-	UserServicesUnitTests u = new UserServicesUnitTests();
-	u.setUp();
-	u.createUsersInMultiThreadedFashionVerifyNoError();
     }
 }
