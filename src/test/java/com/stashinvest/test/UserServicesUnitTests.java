@@ -33,13 +33,11 @@ public class UserServicesUnitTests {
     private static Faker faker;
     private static UsersService restService;
     private static final String EMPTY_STRING = "";
-    private static HttpRequests<Users> request;
 
     @BeforeClass
     public static void setUp() {
 	faker = new Faker();
 	restService = new UsersService();
-	request = new HttpRequests<>();
     }
 
     @Test
@@ -131,6 +129,7 @@ public class UserServicesUnitTests {
 		.checkUsersObjectContainsUserWithGivenEmail(users, email));
 	UsersServiceHelper.sleep(TimeUnit.MINUTES, 1);
 	log.info("Verifying account key is not null");
+	HttpRequests<Users> request = new HttpRequests<>();
 	users = request.httpGet(
 		UsersServiceHelper.generateUsersServiceQuery(email),
 		Users.class);
@@ -143,6 +142,7 @@ public class UserServicesUnitTests {
     public void getUsersWithInvalidQueryAndVerifyError() throws IOException,
 	    InterruptedException {
 	log.info("Verifying account key is not null");
+	HttpRequests<Users> request = new HttpRequests<>();
 	request.httpGet(
 		UsersServiceHelper.generateUsersServiceQuery(EMPTY_STRING),
 		Users.class);
@@ -163,6 +163,7 @@ public class UserServicesUnitTests {
 	user.setPassword(faker.crypto().sha1());
 	user.setMetadata(faker.address().fullAddress());
 	user.setKey(faker.book().title());
+	HttpRequests<Users> request = new HttpRequests<>();
 	request.httpPost(new Gson().toJson(user), Users.class);
 	Assert.assertTrue(
 		"Allowed fields for creating a user are email, phone number, full_name, password, metadata",
@@ -183,6 +184,7 @@ public class UserServicesUnitTests {
 		user.setFullName(faker.name().fullName());
 		user.setPassword(faker.crypto().sha1());
 		user.setMetadata(faker.address().fullAddress());
+		HttpRequests<Users> request = new HttpRequests<>();
 		return request.httpPost(new Gson().toJson(user), Users.class);
 	    };
 	    callables.add(callable);
@@ -195,6 +197,7 @@ public class UserServicesUnitTests {
 	executorService.shutdown();
 	executorService.awaitTermination(2, TimeUnit.MINUTES);
 	executorService.shutdownNow();
+	HttpRequests<Users> request = new HttpRequests<>();
 	Users users = request
 		.httpGet(UsersServiceHelper.generateUsersServiceQuery(null),
 			Users.class);

@@ -38,7 +38,7 @@ public class HttpRequests<T> {
     private static final String USER_AGENT = "Mozilla/5.0";
     private static final String JSON_MEDIA_TYPE = "application/json";
 
-    public synchronized T httpsPost(String jsonBody, Class<T> clazz) throws IOException {
+    public T httpsPost(String jsonBody, Class<T> clazz) throws IOException {
 	URL url = new URL(HTTPS_PROTOCOL, ACCOUNT_KEY_SERVICE_HOST, HTTPS_PORT,
 		ACCOUNT_KEY_ENDPOINT);
 	httpsConnection = (HttpsURLConnection) url.openConnection();
@@ -66,7 +66,7 @@ public class HttpRequests<T> {
 	return gson.fromJson(sb.toString(), clazz);
     }
 
-    public synchronized T httpPost(String jsonBody, Class<T> clazz) {
+    public T httpPost(String jsonBody, Class<T> clazz) {
 	try {
 	    URL url = new URL(HTTP_PROTOCOL, LOCAL_HOST, HTTP_PORT,
 		    USERS_SERVICE_ENDPOINT);
@@ -94,7 +94,7 @@ public class HttpRequests<T> {
 	return null;
     }
 
-    public synchronized T httpGet(String query, Class<T> clazz) {
+    public T httpGet(String query, Class<T> clazz) {
 	try {
 	    URL url = null;
 	    if (query == null) {
