@@ -34,7 +34,8 @@ public class UsersService {
     @GET
     @Path("/users")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getUsers(@QueryParam("query") String query) {
+    public Response getUsers(@QueryParam("query") String query,
+	    @QueryParam("page") String page, @QueryParam("per") String per) {
 	log.info("Retrieving Users from DB");
 	try {
 	    DBHelper dbHelper = new DBHelper();
@@ -45,7 +46,7 @@ public class UsersService {
 		return !VerificationUtil.isValidQuery(query) ? Response
 			.status(StatusCode.UNPROCESSED_ENTITY.code())
 			.entity(StatusCode.UNPROCESSED_ENTITY.reason()).build()
-			: Response.ok(dbHelper.getUsersFilteredByQuery(query),
+			: Response.ok(dbHelper.getUsersFilteredByQuery(query, page, per),
 				MediaType.APPLICATION_JSON).build();
 	    }
 	} catch (SQLException e) {

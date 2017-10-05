@@ -89,19 +89,24 @@ public class DBHelper implements Updatable<User> {
 	}
     }
 
-    public synchronized Users getUsersFilteredByQuery(String query)
-	    throws SQLException {
+    public synchronized Users getUsersFilteredByQuery(String query,
+	    String page, String per) throws SQLException {
 	try {
 	    setConnection();
-	    preparedStatement = connection
-		    .prepareStatement(String
-			    .format("SELECT * FROM %s.%s WHERE metadata like ? OR full_name = ? OR email = ? ORDER BY id DESC",
+	    page = page != null ? page : "1";
+	    per = per != null ? per : "3";
+	    Integer pageNumber = Integer.valueOf(page);
+	    Integer perNumber = Integer.valueOf(per);
+
+	    statement = connection.createStatement();
+	    resultSet = statement
+		    .executeQuery(String
+			    .format("SELECT * FROM %1$s.%2$s WHERE metadata like %3$s%4$s%5$s%4$s%3$s"
+				    + "OR full_name like %3$s%4$s%5$s%4$s%3$s OR email like  %3$s%4$s%5$s%4$s%3$s "
+				    + "ORDER BY id DESC limit %6$d,%7$d",
 				    DBConstants.DB_NAME,
-				    DBConstants.DB_USERS_TABLE));
-	    preparedStatement.setString(1, query);
-	    preparedStatement.setString(2, query);
-	    preparedStatement.setString(3, query);
-	    resultSet = preparedStatement.executeQuery();
+				    DBConstants.DB_USERS_TABLE, "'", "%", query,
+				    (pageNumber - 1) * perNumber, perNumber));
 	    return getUsersObjectFromResultSet(resultSet);
 	} catch (SQLException e) {
 	    log.error("Error getting users from database filtered by query"
@@ -121,7 +126,6 @@ public class DBHelper implements Updatable<User> {
 			DBConstants.DB_NAME, DBConstants.DB_USERS_TABLE));
 		preparedStatement.setString(1, user.getAccountKey());
 		preparedStatement.setString(2, user.getEmail());
-
 		preparedStatement.executeUpdate();
 	    } catch (SQLException e) {
 		log.error(
@@ -140,6 +144,12 @@ public class DBHelper implements Updatable<User> {
 		    new AccountKeyCallableTask(user), IOException.class);
 	});
 	executorService.shutdown();
+	try {
+	    executorService.awaitTermination(1, TimeUnit.MINUTES);
+	} catch (InterruptedException e) {
+	    log.error(e);
+	}
+	executorService.shutdownNow();
     }
 
     public synchronized Users addUser(User user) throws SQLException {
