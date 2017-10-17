@@ -27,6 +27,10 @@ public class UsersService {
      * @param query
      *            A string query that holds data relevant to email, full_name,
      *            metadata;
+     * @param page
+     *            page number to retrieved data from
+     * @param per
+     *            number of entries per page
      * @return 200 status code for users that match the query, or if the query
      *         is null return all users. This will return a 422 for an invalid
      *         query and a 500 status codes for server issues.
@@ -35,19 +39,21 @@ public class UsersService {
     @Path("/users")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getUsers(@QueryParam("query") String query,
-	    @QueryParam("page") String page, @QueryParam("per") String per) {
+	    @QueryParam("page") Integer page, @QueryParam("per") Integer per) {
 	log.info("Retrieving Users from DB");
 	try {
 	    DBHelper dbHelper = new DBHelper();
 	    if (query == null) {
-		return Response.ok(dbHelper.getUsersByCreationTime(),
+		return Response.ok(dbHelper.getUsersByCreationTime(page, per),
 			MediaType.APPLICATION_JSON).build();
 	    } else {
 		return !VerificationUtil.isValidQuery(query) ? Response
 			.status(StatusCode.UNPROCESSED_ENTITY.code())
 			.entity(StatusCode.UNPROCESSED_ENTITY.reason()).build()
-			: Response.ok(dbHelper.getUsersFilteredByQuery(query, page, per),
-				MediaType.APPLICATION_JSON).build();
+			: Response.ok(
+				dbHelper.getUsersFilteredByQuery(query, page,
+					per), MediaType.APPLICATION_JSON)
+				.build();
 	    }
 	} catch (SQLException e) {
 	    return Response.serverError()

@@ -30,6 +30,8 @@ public class DBHelper implements Updatable<User> {
     private PreparedStatement preparedStatement = null;
     private ResultSet resultSet = null;
     private List<String> errorMessages;
+    private static final Integer DEFAULT_PAGE_NUMBER = 1;
+    private static final Integer DEFAULT_ENTRIES_PER_PAGE = 3;
 
     public DBHelper() throws SQLException {
 	initializeDatabase();
@@ -73,13 +75,17 @@ public class DBHelper implements Updatable<User> {
      * @return DB users sorted by the id in DESC order
      * @throws SQLException
      */
-    public synchronized Users getUsersByCreationTime() throws SQLException {
+    public synchronized Users getUsersByCreationTime(Integer page, Integer per)
+	    throws SQLException {
 	try {
 	    setConnection();
+	    page = page != null ? page : DEFAULT_PAGE_NUMBER;
+	    per = per != null ? per : DEFAULT_ENTRIES_PER_PAGE;
 	    statement = connection.createStatement();
 	    resultSet = statement.executeQuery(String.format(
-		    "SELECT * FROM %s.%s ORDER BY id DESC",
-		    DBConstants.DB_NAME, DBConstants.DB_USERS_TABLE));
+		    "SELECT * FROM %s.%s ORDER BY id DESC limit %6$d,%7$d",
+		    DBConstants.DB_NAME, DBConstants.DB_USERS_TABLE, (page - 1)
+			    * per, per));
 	    return getUsersObjectFromResultSet(resultSet);
 	} catch (SQLException e) {
 	    log.error("Error getting users from database", e);
@@ -90,13 +96,11 @@ public class DBHelper implements Updatable<User> {
     }
 
     public synchronized Users getUsersFilteredByQuery(String query,
-	    String page, String per) throws SQLException {
+	    Integer page, Integer per) throws SQLException {
 	try {
 	    setConnection();
-	    page = page != null ? page : "1";
-	    per = per != null ? per : "3";
-	    Integer pageNumber = Integer.valueOf(page);
-	    Integer perNumber = Integer.valueOf(per);
+	    page = page != null ? page : DEFAULT_PAGE_NUMBER;
+	    per = per != null ? per : DEFAULT_ENTRIES_PER_PAGE;
 
 	    statement = connection.createStatement();
 	    resultSet = statement
@@ -105,8 +109,8 @@ public class DBHelper implements Updatable<User> {
 				    + "OR full_name like %3$s%4$s%5$s%4$s%3$s OR email like  %3$s%4$s%5$s%4$s%3$s "
 				    + "ORDER BY id DESC limit %6$d,%7$d",
 				    DBConstants.DB_NAME,
-				    DBConstants.DB_USERS_TABLE, "'", "%", query,
-				    (pageNumber - 1) * perNumber, perNumber));
+				    DBConstants.DB_USERS_TABLE, "'", "%",
+				    query, (page - 1) * per, per));
 	    return getUsersObjectFromResultSet(resultSet);
 	} catch (SQLException e) {
 	    log.error("Error getting users from database filtered by query"
