@@ -15,9 +15,8 @@ Import the project into Eclipse IDE after cloning or downloading the project via
 The following software is needed to complete this project:
 1. Eclipse IDE
 2. MySQL
-3. Gradle
-4. Java JDK. For this project, I'm using 1.8.0_45
-5. Tomcat 8
+3. Java JDK. For this project, I'm using 1.8.0_45
+4. Tomcat 8
 
 Replace the following fields in DBConstants.java with their appropriate values:
 1. **DB_NAME** -> MySQL database name.
@@ -62,7 +61,7 @@ The following query is a POST request for adding a user to the database. Output 
 `curl -i -H "Content-Type: application/json" -X POST "http://localhost:8080/invest-stash-rest/rest/v1/users" -d "{\"email\":\"user@example.com\",\"phoneNumber\":\"1234567891\",\"fullName\":\"Ahmed Ebaid\",\"password\":\"asdfg\",\"metadata\":\"age 20, educated\"}"`
 
 ## Built With
-Maven - Dependency Management
+Gradle - Dependency Management
 
 ## Authors
 Ahmed Ebaid
