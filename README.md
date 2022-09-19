@@ -13,10 +13,9 @@ Import the project into Eclipse IDE after cloning or downloading the project via
 
 ## Prerequisites
 The following software is needed to complete this project:
-1. Eclipse IDE
-2. MySQL
-3. Java JDK. For this project, I'm using 1.8.0_45
-4. Tomcat 8
+1. MySQL
+2. Java JDK. For this project, I'm using 1.8.0_45
+3. Tomcat 8
 
 Replace the following fields in DBConstants.java with their appropriate values:
 1. **DB_NAME** -> MySQL database name.
